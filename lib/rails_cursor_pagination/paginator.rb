@@ -445,6 +445,19 @@ module RailsCursorPagination
       "#{escaped_table_name}.#{escaped_id_column}".freeze
     end
 
+    # Return a properly escaped reference to the order column prefixed with the
+    # table name. This prefixing is important in case of another model having
+    # been joined to the passed relation.
+    #
+    # @return [String (frozen)]
+
+    def order_column
+      escaped_table_name = @relation.quoted_table_name
+      escaped_order_column = @relation.connection.quote_column_name(@order_field)
+
+      "#{escaped_table_name}.#{escaped_order_column}".freeze
+    end
+
     # Applies the filtering based on the provided cursor and order column to the
     # sorted relation.
     #
@@ -472,11 +485,11 @@ module RailsCursorPagination
         end
 
         sorted_relation
-          .where("#{@order_field} #{filter_operator} ?",
+          .where("#{order_column} #{filter_operator} ?",
                  decoded_cursor.order_field_value)
           .or(
             sorted_relation
-              .where("#{@order_field} = ?", decoded_cursor.order_field_value)
+              .where("#{order_column} = ?", decoded_cursor.order_field_value)
               .where("#{id_column} #{filter_operator} ?", decoded_cursor.id)
           )
       end
