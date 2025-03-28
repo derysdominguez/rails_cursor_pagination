@@ -412,17 +412,17 @@ module RailsCursorPagination
     def relation_with_cursor_fields
       return @relation if @relation.select_values.blank? ||
                           @relation.select_values.include?('*')
-    
+
       relation = @relation
-    
+
       unless @relation.select_values.include?(:id)
         relation = relation.select(:id)
       end
-    
+
       if custom_order_field? && !@relation.select_values.include?(@order_field)
         relation = relation.select("#{@order_field} AS #{order_column_name}")
       end
-    
+
       relation
     end
 
