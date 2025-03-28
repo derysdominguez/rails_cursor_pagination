@@ -14,6 +14,13 @@ These are the latest changes on the project's `master` branch that have not yet 
   Follow the same format as previous releases by categorizing your feature into "Added", "Changed", "Deprecated", "Removed", "Fixed", or "Security".
 --->
 
+### Added
+- Added support for sorting by columns from joined tables. The `order_by` parameter now accepts fully qualified column names, allowing pagination to work seamlessly with joined table columns.
+
+### Fixed
+- Ensure `order_by` columns are properly prefixed with the table name to avoid SQL ambiguity errors when joining multiple tables with columns of the same name (e.g., `created_at`).
+- Fixed cursor decoding and encoding to handle fully qualified column names (e.g., `table.column`) correctly.
+
 ## [0.4.0] - 2023-10-06
 
 ### Changed
