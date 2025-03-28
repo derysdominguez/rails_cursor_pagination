@@ -353,6 +353,13 @@ module RailsCursorPagination
       "#{decoded_cursor.order_field_value}-#{decoded_cursor.id}"
     end
 
+    # Extract the column name from "table.column" if necessary
+    #
+    # @return [Symbol]
+    def order_field_name
+      @order_field.to_s.split('.').last.to_sym
+    end
+
     # Generate a cursor for the given record and ordering field. The cursor
     # encodes all the data required to then paginate based on it with the given
     # ordering field.
@@ -365,7 +372,7 @@ module RailsCursorPagination
     # @param record [ActiveRecord] Model instance for which we want the cursor
     # @return [String]
     def cursor_for_record(record)
-      cursor_class.from_record(record: record, order_field: @order_field).encode
+      cursor_class.from_record(record: record, order_field: order_field_name).encode
     end
 
     # Decode the provided cursor. Either just returns the cursor's ID or in case
@@ -375,7 +382,7 @@ module RailsCursorPagination
     # @return [Integer, Array]
     def decoded_cursor
       memoize(:decoded_cursor) do
-        cursor_class.decode(encoded_string: @cursor, order_field: @order_field)
+        cursor_class.decode(encoded_string: @cursor, order_field: order_field_name)
       end
     end
 
@@ -413,7 +420,7 @@ module RailsCursorPagination
       end
 
       if custom_order_field? && !@relation.select_values.include?(@order_field)
-        relation = relation.select(@order_field)
+        relation = relation.select("#{@order_field} AS #{order_field_name}")
       end
 
       relation
@@ -445,6 +452,23 @@ module RailsCursorPagination
       "#{escaped_table_name}.#{escaped_id_column}".freeze
     end
 
+    # Return a properly escaped reference to the order column prefixed with the
+    # table name. This prefixing is important in case of another model having
+    # been joined to the passed relation.
+    #
+    # @return [String (frozen)]
+
+    def order_column
+      if @order_field.to_s.include?('.')
+        return @order_field
+      else
+        escaped_table_name = @relation.quoted_table_name
+        escaped_order_column = @relation.connection.quote_column_name(@order_field)
+
+        "#{escaped_table_name}.#{escaped_order_column}".freeze
+      end
+    end
+
     # Applies the filtering based on the provided cursor and order column to the
     # sorted relation.
     #
@@ -472,11 +496,11 @@ module RailsCursorPagination
         end
 
         sorted_relation
-          .where("#{@order_field} #{filter_operator} ?",
+          .where("#{order_column} #{filter_operator} ?",
                  decoded_cursor.order_field_value)
           .or(
             sorted_relation
-              .where("#{@order_field} = ?", decoded_cursor.order_field_value)
+              .where("#{order_column} = ?", decoded_cursor.order_field_value)
               .where("#{id_column} #{filter_operator} ?", decoded_cursor.id)
           )
       end
